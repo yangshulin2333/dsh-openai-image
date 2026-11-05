@@ -7,7 +7,7 @@
 //   image_edit     — POST /v1/images/edits (multi-image + optional mask)
 //   roblox_upload  — POST apis.roblox.com/assets/v1/assets (opt-in, confirm-gated)
 
-import { Config, normalizeConfig } from './lib/config.js'
+import { Config, mergeConfig, normalizeConfig } from './lib/config.js'
 import { registerSettingsRoutes } from './lib/routes.js'
 import { registerGenerateTool } from './lib/tools/generate.js'
 import { registerEditTool } from './lib/tools/edit.js'
@@ -29,13 +29,20 @@ export function apply(ctx, rawConfig) {
   }
 
   // Settings edits must reach the running tools without a restart. The config
-  // editor runs this waterfall with the next raw config before reconciling, so
-  // fold it into the very object every tool closure already reads.
+  // editor runs this waterfall with the next config before reconciling, so fold
+  // it into the very object every tool closure already reads.
+  //
+  // The waterfall payload can be partial (a single field changed from a form
+  // that only knows about that field), so always merge it over the live config:
+  // normalizing the payload on its own would silently reset every other field to
+  // its default — that is what used to flip `outputFormat` back to png.
   if (typeof ctx.on === 'function') {
     ctx.on('internal/config', (next) => {
       try {
-        Object.assign(cfg, normalizeConfig(next))
-        log(`dsh-openai-image config updated: roblox=${cfg.robloxEnabled ? 'on' : 'off'} model=${cfg.model}`)
+        if (next && typeof next === 'object' && !Array.isArray(next)) {
+          Object.assign(cfg, mergeConfig(cfg, next))
+          log(`dsh-openai-image config updated: roblox=${cfg.robloxEnabled ? 'on' : 'off'} format=${cfg.outputFormat}`)
+        }
       } catch (error) {
         log(`dsh-openai-image config update ignored: ${error && error.message ? error.message : error}`)
       }
