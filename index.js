@@ -38,15 +38,18 @@ export function apply(ctx, rawConfig) {
   // its default — that is what used to flip `outputFormat` back to png.
   if (typeof ctx.on === 'function') {
     ctx.on('internal/config', (next) => {
+      if (!next || typeof next !== 'object' || Array.isArray(next)) return next
+      let resolved = next
       try {
-        if (next && typeof next === 'object' && !Array.isArray(next)) {
-          Object.assign(cfg, mergeConfig(cfg, next))
-          log(`dsh-openai-image config updated: roblox=${cfg.robloxEnabled ? 'on' : 'off'} format=${cfg.outputFormat}`)
-        }
+        resolved = mergeConfig(cfg, next)
+        Object.assign(cfg, resolved)
+        log(`dsh-openai-image config updated: roblox=${cfg.robloxEnabled ? 'on' : 'off'} format=${cfg.outputFormat}`)
       } catch (error) {
         log(`dsh-openai-image config update ignored: ${error && error.message ? error.message : error}`)
       }
-      return next
+      // Hand the loader a complete config, not the partial payload: whatever
+      // reconciles next then sees the same values the running tools already use.
+      return resolved
     })
   }
 

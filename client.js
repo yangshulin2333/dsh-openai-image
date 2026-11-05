@@ -344,25 +344,31 @@ window.__ModuleLoader__.load({
             }
           }
           await readKeys()
-          // The host echoes the persisted config; if a field did not come back
-          // with the value we wrote, say so instead of pretending it is live.
-          let lagged = false
-          try {
-            const echoed = form.getSnapshot()
-            if (echoed && echoed.value) {
-              for (const op of ops) {
-                if (op.op !== 'set') continue
-                const key = op.path[0]
-                if (echoed.value[key] !== op.value) lagged = true
-              }
+          // The host echoes the persisted config through the settings mirror a
+          // moment later, so wait for it briefly instead of calling a slow echo
+          // a "restart required".
+          const wanted = ops.filter((op) => op.op === 'set')
+          const echoMatches = () => {
+            try {
+              const echoed = form.getSnapshot()
+              if (!echoed || !echoed.value) return false
+              return wanted.every((op) => Object.is(echoed.value[op.path[0]], op.value))
+            } catch {
+              return false
             }
-          } catch {
-            /* no echo to compare against */
+          }
+          let lagged = wanted.length > 0
+          for (let attempt = 0; attempt < 16 && lagged; attempt += 1) {
+            if (echoMatches()) {
+              lagged = false
+              break
+            }
+            await new Promise((resolve) => setTimeout(resolve, 150))
           }
           setResult('save', {
             ok: true,
             text: lagged
-              ? '已写入配置文件，但运行中的配置没有即时刷新：重启 DSH 后生效。'
+              ? '已写入配置文件（界面回显较慢）。插件会按新设置运行；若下一次出图仍是旧设置，重启 DSH 一次。'
               : '已保存，立即生效（不需要重启）。',
           })
         } catch (error) {
@@ -449,10 +455,10 @@ window.__ModuleLoader__.load({
             { style: S.row },
             h(Field, { label: '输出格式' }, h(Select, { value: draft.outputFormat, options: formatOptions, disabled: readonly || busy !== '', onChange: (value) => set('outputFormat', value) })),
             draft.outputFormat === 'gif'
-              ? h(Field, { label: '帧数' }, h(TextInput, { value: String(draft.frameCount ?? 6), disabled: readonly || busy !== '', onChange: (value) => set('frameCount', Number(value) || 0) }))
+              ? h(Field, { label: '帧数 (2-16)' }, h(TextInput, { value: String(draft.frameCount ?? 6), disabled: readonly || busy !== '', onChange: (value) => set('frameCount', Math.max(2, Math.min(16, Number(value) || 6))) }))
               : null,
             draft.outputFormat === 'gif'
-              ? h(Field, { label: '帧率 (0=保持接口原始 5fps)' }, h(TextInput, { value: String(draft.gifFps ?? 0), disabled: readonly || busy !== '', onChange: (value) => set('gifFps', Number(value) || 0) }))
+              ? h(Field, { label: '帧率 (0=保持接口原始 5fps，最大 50)' }, h(TextInput, { value: String(draft.gifFps ?? 0), disabled: readonly || busy !== '', onChange: (value) => set('gifFps', Math.max(0, Math.min(50, Number(value) || 0))) }))
               : null,
             draft.outputFormat === 'svg'
               ? h(Field, { label: 'SVG 文本模型' }, h(Select, { value: draft.svgModel, options: svgModelOptions, disabled: readonly || busy !== '', onChange: (value) => set('svgModel', value) }))
