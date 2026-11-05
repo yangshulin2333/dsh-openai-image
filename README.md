@@ -89,9 +89,11 @@ pnpm add @yangshulin2333/dsh-openai-image
 | --- | --- |
 | `prompt`（必填） | 画面描述 |
 | `preset` | Roblox 预设名，自动补尺寸/格式/约束 |
-| `model` / `size` / `aspect_ratio` / `quality` / `count` / `output_format` / `background` | 与官方 API 一致 |
+| `model` / `size` / `aspect_ratio` / `quality` / `count` / `output_format` / `background` | 与官方 API 一致（`count` 1-10，`size` 任意 `宽x高`，两边须被 16 整除、最长边 ≤ 3840） |
 | `frame_count` | GIF 帧数（2-16，默认 6），只在 `output_format: gif` 时生效 |
+| `gif_fps` | 生成后把 GIF 改成这个帧率（1-50）；接口原始是 5fps |
 | `svg_model` | 生成 SVG 的文本模型（默认 `gpt-6.1-sol`），只在 `output_format: svg` 时生效 |
+| `moderation` / `output_compression` / `user` | 安全过滤 `auto|low`、jpeg/webp 压缩 0-100、调用方用户标识 |
 | `output_name` / `output_dir` | 落盘位置 |
 
 **输出格式有三类**：`png` / `jpeg` / `webp` 是普通静图；`gif` 是循环动图（接口把动画做成一张雪碧图再切片，所以尺寸只能是 `256x256` 或 `512x512`，帧数 2-16）；`svg` 是矢量图，由文本模型写代码生成，尺寸/质量参数不生效（想改线条就在提示词里说）。
@@ -100,9 +102,11 @@ pnpm add @yangshulin2333/dsh-openai-image
 
 | 参数 | 说明 |
 | --- | --- |
-| `prompt`（必填） | 要改什么 |
-| `image`（必填） | 源图路径，多张用逗号分隔（最多 8 张） |
-| `mask` | 可选 PNG 蒙版，透明区域即重绘区域 |
+| `prompt`（必填） | 要改什么；做动画时按「第 1 帧…第 2 帧…」描述分镜 |
+| `image`（必填） | 源图路径，多张用逗号分隔（最多 16 张，内部用 `image[]` 数组语法提交） |
+| `mask` | 可选 PNG 蒙版（必须是带 alpha 通道的 RGBA PNG），透明区域即重绘区域 |
+| `output_format` | `png` / `jpeg` / `webp` / `gif`；**`gif` 可以用一张现成图生成动画**，`svg` 不支持（编辑接口不出矢量） |
+| `frame_count` / `gif_fps` | 同上，只在 `gif` 时生效 |
 | 其余 | 同 `image_generate`（`preset` 也可用） |
 
 ### roblox_upload

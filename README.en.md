@@ -55,7 +55,7 @@ field table); both paths write the same values.
 
 **Three kinds of output**: `png` / `jpeg` / `webp` are stills; `gif` is a looping animation (the API renders a sprite sheet and slices it, so only `256x256` or `512x512` work, 2–16 frames); `svg` is vector art written as code by a text model, where size and quality do not apply (describe the line style in the prompt instead).
 
-**`image_edit`** — `prompt` (required), `image` (required, comma-separated paths, up to 8), `mask` (optional PNG; transparent pixels get repainted), plus the same generation options.
+**`image_edit`** — `prompt` (required), `image` (required, comma-separated paths, up to 16, sent with the `image[]` array syntax), `mask` (optional PNG that must carry an alpha channel; transparent pixels get repainted), plus the same generation options. Set `output_format: gif` with `frame_count` / `gif_fps` to turn an existing picture into a short animation (svg is generation-only).
 
 **`roblox_upload`** — `image` (required), `confirm` (optional; omit it to get a `confirm_required` summary of the planned upload, pass `true` only after the user agreed), `display_name`, `description`, `asset_type`, `creator_type`, `creator_id`.
 

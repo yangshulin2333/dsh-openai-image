@@ -20,10 +20,14 @@ window.__ModuleLoader__.load({
     const OPENAI_REF = 'OPENAI_API_KEY'
     const ROBLOX_REF = 'ROBLOX_API_KEY'
 
-    const sizeOptions = ['1024x1024', '1536x1024', '1024x1536']
+    const sizeOptions = ['1024x1024', '1536x1024', '1024x1536', '1824x1024']
     const gifSizeOptions = ['256x256', '512x512']
     const qualityOptions = ['auto', 'low', 'medium', 'high']
-    const modelOptions = ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst', 'gpt-image-2.6']
+    const moderationOptions = [
+      { value: 'auto', label: '默认 (auto)' },
+      { value: 'low', label: '宽松 (low)' },
+    ]
+    const modelOptions = ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst']
     const svgModelOptions = ['gpt-6.1-sol', 'gpt-6-astra']
     const formatOptions = ['png', 'jpeg', 'webp', 'gif', 'svg']
     const assetTypes = ['Decal', 'Image']
@@ -38,7 +42,10 @@ window.__ModuleLoader__.load({
       'quality',
       'outputFormat',
       'frameCount',
+      'gifFps',
       'svgModel',
+      'moderation',
+      'outputCompression',
       'background',
       'outputDir',
       'robloxEnabled',
@@ -422,6 +429,12 @@ window.__ModuleLoader__.load({
             h(Field, { label: '默认尺寸' }, h(Select, { value: draft.size, options: draft.outputFormat === 'gif' ? gifSizeOptions : sizeOptions, disabled: readonly || busy !== '', onChange: (value) => set('size', value) })),
             h(Field, { label: '质量' }, h(Select, { value: draft.quality, options: qualityOptions, disabled: readonly || busy !== '', onChange: (value) => set('quality', value) })),
           ),
+          h(
+            'div',
+            { style: S.row },
+            h(Field, { label: '安全过滤' }, h(Select, { value: draft.moderation || 'auto', options: moderationOptions, disabled: readonly || busy !== '', onChange: (value) => set('moderation', value) })),
+            h(Field, { label: '压缩 0-100（仅 jpeg/webp）' }, h(TextInput, { value: String(draft.outputCompression ?? 0), disabled: readonly || busy !== '', onChange: (value) => set('outputCompression', Number(value) || 0) })),
+          ),
           draft.outputFormat === 'gif' || draft.outputFormat === 'svg'
             ? h(
                 'p',
@@ -437,6 +450,9 @@ window.__ModuleLoader__.load({
             h(Field, { label: '输出格式' }, h(Select, { value: draft.outputFormat, options: formatOptions, disabled: readonly || busy !== '', onChange: (value) => set('outputFormat', value) })),
             draft.outputFormat === 'gif'
               ? h(Field, { label: '帧数' }, h(TextInput, { value: String(draft.frameCount ?? 6), disabled: readonly || busy !== '', onChange: (value) => set('frameCount', Number(value) || 0) }))
+              : null,
+            draft.outputFormat === 'gif'
+              ? h(Field, { label: '帧率 (0=保持接口原始 5fps)' }, h(TextInput, { value: String(draft.gifFps ?? 0), disabled: readonly || busy !== '', onChange: (value) => set('gifFps', Number(value) || 0) }))
               : null,
             draft.outputFormat === 'svg'
               ? h(Field, { label: 'SVG 文本模型' }, h(Select, { value: draft.svgModel, options: svgModelOptions, disabled: readonly || busy !== '', onChange: (value) => set('svgModel', value) }))
