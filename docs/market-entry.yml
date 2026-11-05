@@ -1,0 +1,16 @@
+# Entry for https://github.com/awesome-dsh-plugin/awesome-dsh-plugin
+#
+# Copy this file to `data/plugins/yangshulin2333__dsh-openai-image.yml` in that
+# repository and open a pull request (one file = the whole submission).
+# Submit at least 1 day after the repo was created — CI checks repo age.
+#
+# The tarball points at a GitHub Release asset with a version-free name, so
+# `latest/download/` keeps resolving after the next release.
+
+url: https://github.com/yangshulin2333/dsh-openai-image
+name: yangshulin2333/dsh-openai-image
+category: vision
+description:
+  en: Generates and edits images through the OpenAI Images 2.6 API (gpt-image-2.6 flare and sunburst), including Roblox asset presets, and can upload the result to Roblox Open Cloud as a Decal or Image asset.
+  zh: 通过 OpenAI Images 2.6 API（gpt-image-2.6 flare 与 sunburst）出图、改图，内置 Roblox 资源预设，并可把成品上传到 Roblox Open Cloud 成为 Decal 或 Image 资产。
+tarball: https://github.com/yangshulin2333/dsh-openai-image/releases/latest/download/dsh-openai-image.tgz
