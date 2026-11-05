@@ -187,7 +187,24 @@ window.__ModuleLoader__.load({
     function SettingsCard(props) {
       const view = props && props.view
       const ctx = scope.ctx
-      const form = scope.form
+
+      // The settings mirror loads asynchronously, so the namespace that answers
+      // 'ready' is only known after the first describe read: re-render on every
+      // mirror change instead of freezing the form picked at apply time.
+      const [mirrorTick, setMirrorTick] = React.useState(0)
+      React.useEffect(() => {
+        let off
+        try {
+          const mirror = ctx.configForms.describe()
+          if (mirror && typeof mirror.ensure === 'function') mirror.ensure()
+          if (mirror && typeof mirror.subscribe === 'function') off = mirror.subscribe(() => setMirrorTick((tick) => tick + 1))
+        } catch {
+          /* keep the diagnostic branch visible */
+        }
+        return off
+      }, [ctx])
+
+      const form = scope.formFor ? scope.formFor() : undefined
       if (!form) {
         return h('div', { style: S.card }, h('span', { style: S.hint }, '宿主没有提供本插件的配置表单（configForms 不可用）。'))
       }
@@ -199,7 +216,10 @@ window.__ModuleLoader__.load({
       const [busy, setBusy] = React.useState('')
       const [result, setResult] = React.useState(null)
 
-      React.useEffect(() => form.subscribe(() => setSnapshot(form.getSnapshot())), [])
+      React.useEffect(() => {
+        setSnapshot(form.getSnapshot())
+        return form.subscribe(() => setSnapshot(form.getSnapshot()))
+      }, [form, mirrorTick])
 
       const readKeys = React.useCallback(async () => {
         try {
@@ -447,6 +467,7 @@ window.__ModuleLoader__.load({
           return match || ENTRY_NAMESPACE
         }
         scope.form = resolveForm(ctx.configForms)
+        scope.formFor = () => resolveForm(ctx.configForms)
         scope.probe = () => {
           const served = servedNamespaces(ctx.configForms)
           const rows = [`served=[${served.join(', ') || 'empty'}]`]
