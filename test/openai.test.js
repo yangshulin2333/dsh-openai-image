@@ -5,8 +5,10 @@ import {
   assertTransparentCombination,
   buildGenerationBody,
   clampCount,
+  clampFrameCount,
   describeApiError,
   isRetryableStatus,
+  resolveGifSize,
   resolveSize,
 } from '../lib/openai.js'
 
@@ -57,6 +59,40 @@ test('transparent backgrounds need png or webp', () => {
   assert.doesNotThrow(() => assertTransparentCombination('png', 'transparent'))
   assert.throws(() => assertTransparentCombination('jpeg', 'transparent'), /transparent backgrounds require/)
   assert.doesNotThrow(() => assertTransparentCombination('jpeg', 'opaque'))
+})
+
+test('gif bodies carry frame_count and stay inside the sprite-sheet budget', () => {
+  const body = buildGenerationBody(
+    { output_format: 'gif', frame_count: 6 },
+    { model: 'gpt-image-2.6-flare', size: '1024x1024', quality: 'auto', outputFormat: 'png' },
+    'a bouncing ball',
+  )
+  assert.equal(body.output_format, 'gif')
+  assert.equal(body.frame_count, 6)
+  assert.equal(body.size, '512x512')
+  assert.equal(body.quality, undefined)
+  assert.equal(body.svg, undefined)
+  // an oversized requested size must fall back, never reach the API
+  assert.equal(resolveGifSize({ size: '1536x1024' }), '512x512')
+  assert.equal(resolveGifSize({ size: '256x256' }), '256x256')
+  assert.equal(clampFrameCount(99), 16)
+  assert.equal(clampFrameCount(1), 2)
+  assert.equal(clampFrameCount(undefined), 6)
+})
+
+test('svg bodies hand the drawing to a text model and drop raster knobs', () => {
+  const body = buildGenerationBody(
+    { output_format: 'svg', svg_model: 'gpt-6-astra', quality: 'high', aspect_ratio: '16:9' },
+    { model: 'gpt-image-2.6-flare', outputFormat: 'png', svgModel: 'gpt-6.1-sol' },
+    'a flat fox icon',
+  )
+  assert.deepEqual(body.svg, { model: 'gpt-6-astra' })
+  assert.equal(body.output_format, 'svg')
+  assert.equal(body.size, undefined)
+  assert.equal(body.quality, undefined)
+  assert.equal(body.frame_count, undefined)
+  const fallback = buildGenerationBody({ output_format: 'svg' }, { svgModel: 'gpt-6.1-sol' }, 'p')
+  assert.deepEqual(fallback.svg, { model: 'gpt-6.1-sol' })
 })
 
 test('api errors keep the provider code', () => {

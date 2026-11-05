@@ -51,7 +51,9 @@ field table); both paths write the same values.
 
 ## Tools
 
-**`image_generate`** — `prompt` (required), `preset`, `model`, `size`, `aspect_ratio`, `quality`, `count` (1–4), `output_format`, `background`, `output_name`, `output_dir`.
+**`image_generate`** — `prompt` (required), `preset`, `model`, `size`, `aspect_ratio`, `quality`, `count` (1–4), `output_format`, `frame_count` (GIF, 2–16), `svg_model` (SVG, default `gpt-6.1-sol`), `background`, `output_name`, `output_dir`.
+
+**Three kinds of output**: `png` / `jpeg` / `webp` are stills; `gif` is a looping animation (the API renders a sprite sheet and slices it, so only `256x256` or `512x512` work, 2–16 frames); `svg` is vector art written as code by a text model, where size and quality do not apply (describe the line style in the prompt instead).
 
 **`image_edit`** — `prompt` (required), `image` (required, comma-separated paths, up to 8), `mask` (optional PNG; transparent pixels get repainted), plus the same generation options.
 

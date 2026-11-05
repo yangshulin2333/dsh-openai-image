@@ -21,9 +21,11 @@ window.__ModuleLoader__.load({
     const ROBLOX_REF = 'ROBLOX_API_KEY'
 
     const sizeOptions = ['1024x1024', '1536x1024', '1024x1536']
+    const gifSizeOptions = ['256x256', '512x512']
     const qualityOptions = ['auto', 'low', 'medium', 'high']
     const modelOptions = ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst', 'gpt-image-2.6']
-    const formatOptions = ['png', 'jpeg', 'webp']
+    const svgModelOptions = ['gpt-6.1-sol', 'gpt-6-astra']
+    const formatOptions = ['png', 'jpeg', 'webp', 'gif', 'svg']
     const assetTypes = ['Decal', 'Image']
     const creatorTypes = [
       { value: 'user', label: '个人账号 (user)' },
@@ -35,6 +37,8 @@ window.__ModuleLoader__.load({
       'size',
       'quality',
       'outputFormat',
+      'frameCount',
+      'svgModel',
       'background',
       'outputDir',
       'robloxEnabled',
@@ -365,13 +369,28 @@ window.__ModuleLoader__.load({
             'div',
             { style: S.row },
             h(Field, { label: '模型' }, h(Select, { value: draft.model, options: modelOptions, disabled: readonly || busy !== '', onChange: (value) => set('model', value) })),
-            h(Field, { label: '默认尺寸' }, h(Select, { value: draft.size, options: sizeOptions, disabled: readonly || busy !== '', onChange: (value) => set('size', value) })),
+            h(Field, { label: '默认尺寸' }, h(Select, { value: draft.size, options: draft.outputFormat === 'gif' ? gifSizeOptions : sizeOptions, disabled: readonly || busy !== '', onChange: (value) => set('size', value) })),
             h(Field, { label: '质量' }, h(Select, { value: draft.quality, options: qualityOptions, disabled: readonly || busy !== '', onChange: (value) => set('quality', value) })),
           ),
+          draft.outputFormat === 'gif' || draft.outputFormat === 'svg'
+            ? h(
+                'p',
+                { style: S.hint },
+                draft.outputFormat === 'gif'
+                  ? 'GIF 是循环动图：接口先生成一张雪碧图再切片，所以尺寸只能是 256 或 512，帧数 2-16。'
+                  : 'SVG 是矢量图：由文本模型写代码生成，尺寸/质量参数不生效；想改线条风格就在提示词里说。',
+              )
+            : null,
           h(
             'div',
             { style: S.row },
             h(Field, { label: '输出格式' }, h(Select, { value: draft.outputFormat, options: formatOptions, disabled: readonly || busy !== '', onChange: (value) => set('outputFormat', value) })),
+            draft.outputFormat === 'gif'
+              ? h(Field, { label: '帧数' }, h(TextInput, { value: String(draft.frameCount ?? 6), disabled: readonly || busy !== '', onChange: (value) => set('frameCount', Number(value) || 0) }))
+              : null,
+            draft.outputFormat === 'svg'
+              ? h(Field, { label: 'SVG 文本模型' }, h(Select, { value: draft.svgModel, options: svgModelOptions, disabled: readonly || busy !== '', onChange: (value) => set('svgModel', value) }))
+              : null,
             h(Field, { label: '输出目录' }, h(TextInput, { value: draft.outputDir, disabled: readonly || busy !== '', onChange: (value) => set('outputDir', value) })),
             h(
               'div',

@@ -90,7 +90,11 @@ pnpm add @yangshulin2333/dsh-openai-image
 | `prompt`（必填） | 画面描述 |
 | `preset` | Roblox 预设名，自动补尺寸/格式/约束 |
 | `model` / `size` / `aspect_ratio` / `quality` / `count` / `output_format` / `background` | 与官方 API 一致 |
+| `frame_count` | GIF 帧数（2-16，默认 6），只在 `output_format: gif` 时生效 |
+| `svg_model` | 生成 SVG 的文本模型（默认 `gpt-6.1-sol`），只在 `output_format: svg` 时生效 |
 | `output_name` / `output_dir` | 落盘位置 |
+
+**输出格式有三类**：`png` / `jpeg` / `webp` 是普通静图；`gif` 是循环动图（接口把动画做成一张雪碧图再切片，所以尺寸只能是 `256x256` 或 `512x512`，帧数 2-16）；`svg` 是矢量图，由文本模型写代码生成，尺寸/质量参数不生效（想改线条就在提示词里说）。
 
 ### image_edit
 
