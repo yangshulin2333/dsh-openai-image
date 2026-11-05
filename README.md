@@ -59,7 +59,7 @@ Settings → Plugins → **OpenAI Images 2.6**:
 
 **`image_edit`** — `prompt` (required), `image` (required, comma-separated paths, up to 8), `mask` (optional PNG; transparent pixels get repainted), plus the same generation options.
 
-**`roblox_upload`** — `image` (required), `confirm` (required, must be `true` and only after the user agreed), `display_name`, `description`, `asset_type`, `creator_type`, `creator_id`.
+**`roblox_upload`** — `image` (required), `confirm` (optional; omit it to get a `confirm_required` summary of the planned upload, pass `true` only after the user agreed), `display_name`, `description`, `asset_type`, `creator_type`, `creator_id`.
 
 ## Roblox presets
 
@@ -80,7 +80,7 @@ Presets only add prompt constraints, size and format — no hidden post-processi
 1. Create an API key at [Creator Dashboard → Open Cloud](https://create.roblox.com/dashboard/credentials) with the **assets** scope (read + write) and your IP allowed.
 2. Store it as the DSH credential `ROBLOX_API_KEY`.
 3. Enable Roblox upload in the plugin settings and fill `robloxCreatorId`.
-4. Generate an image, then — after the user explicitly agrees — call `roblox_upload({ image, confirm: true })`.
+4. Generate an image, call `roblox_upload({ image })` to preview the planned upload, then — after the user explicitly agrees — call it again with `confirm: true`.
 
 Limits from the official Assets API: png/jpeg/bmp/tga, **< 8000×8000 px**, **≤ 20 MB**, and **assets cannot be updated** (a new revision is a new asset, hence the timestamp in file names). Uploads are asynchronous: the plugin polls the operation until `done`, then returns `assetId`, `rbxassetid://` and `moderationState`, and records the result in the `.json` sidecar next to the image.
 

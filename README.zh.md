@@ -88,7 +88,7 @@ API key 放在 DSH 凭据库里最省事（设置 → 账号与余额 → 凭据
 | 参数 | 说明 |
 | --- | --- |
 | `image`（必填） | 本地 png/jpg/bmp/tga |
-| `confirm`（必填） | 必须是 `true`，且只应在用户明确同意后传 |
+| `confirm`（可选） | 不传时只返回计划摘要（`confirm_required`）；用户明确同意后再传 `true` |
 | `display_name` / `description` | 资产名（≤50 字）/ 描述 |
 | `asset_type` / `creator_type` / `creator_id` | 覆盖设置里的默认值 |
 
@@ -111,7 +111,7 @@ API key 放在 DSH 凭据库里最省事（设置 → 账号与余额 → 凭据
 1. 在 [Creator Dashboard → Open Cloud → API Keys](https://create.roblox.com/dashboard/credentials) 建 key，权限勾 **assets**（读 + 写），并允许你的 IP。
 2. 把 key 存成 DSH 凭据 `ROBLOX_API_KEY`。
 3. 插件设置里打开「启用 Roblox 上传」，填 `robloxCreatorId`（个人：[users/<id>/profile](https://www.roblox.com/users/1/profile) 里的数字）。
-4. 让 agent 先出图，再**明确同意**后调用 `roblox_upload({ image, confirm: true })`。
+4. 让 agent 先出图，先调 `roblox_upload({ image })` 预览计划上传，用户**明确同意**后再传 `confirm: true`。
 
 限制（来自官方 Assets API）：png/jpeg/bmp/tga、**< 8000×8000 px**、**≤ 20 MB**、**资产不可更新**（改图 = 新资产，所以文件名带时间戳）。上传是异步的，插件会轮询 operation 直到 `done`，返回 `assetId`、`rbxassetid://`、`moderationState`，并把结果写进图片旁边的 `.json` sidecar。
 
