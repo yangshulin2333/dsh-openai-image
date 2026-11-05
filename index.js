@@ -37,7 +37,15 @@ export function apply(ctx, rawConfig) {
   // normalizing the payload on its own would silently reset every other field to
   // its default — that is what used to flip `outputFormat` back to png.
   if (typeof ctx.on === 'function') {
-    ctx.on('internal/config', (next) => {
+    // `internal/config` is a waterfall that fires for EVERY plugin's fiber:
+    // the handler must be a plain function (so `this` is the fiber being
+    // configured), must call next() to keep the chain intact, and must ignore
+    // fibers that are not ours — otherwise this plugin's fields leak into every
+    // other plugin's config (plan-mode, tool-result-pruner, ...) and they refuse
+    // to start with "unknown key(s)".
+    ctx.on('internal/config', function (_raw, nextFn) {
+      const next = nextFn()
+      if (this !== ctx.fiber) return next
       if (!next || typeof next !== 'object' || Array.isArray(next)) return next
       let resolved = next
       try {

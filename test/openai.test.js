@@ -174,17 +174,48 @@ test('edit forms use image[] for several inputs and carry gif knobs', () => {
   assert.equal(single.getAll('image[]').length, 0)
 })
 
+// Minimal but structurally valid GIF: header, logical screen with a 2-colour
+// global table, then per frame a GCE + image descriptor + one LZW sub-block.
+function makeGif(frames, lzw = [0x21, 0xf9, 0x04, 0x00]) {
+  const parts = [
+    Buffer.from('GIF89a'),
+    Buffer.from([0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00]),
+    Buffer.from([0, 0, 0, 255, 255, 255]),
+  ]
+  for (let i = 0; i < frames; i += 1) {
+    parts.push(Buffer.from([0x21, 0xf9, 0x04, 0x00, 0x14, 0x00, 0x00, 0x00]))
+    parts.push(Buffer.from([0x2c, 0, 0, 0, 0, 1, 0, 1, 0, 0x00]))
+    parts.push(Buffer.from([0x02, lzw.length, ...lzw, 0x00]))
+  }
+  parts.push(Buffer.from([0x3b]))
+  return Buffer.concat(parts)
+}
+
 test('gif retiming patches every graphic control extension', () => {
-  const frame = Buffer.from([0x21, 0xf9, 0x04, 0x00, 0x14, 0x00, 0x00, 0x00])
-  const gif = Buffer.concat([Buffer.from('GIF89a'), frame, Buffer.from('data'), frame])
+  const gif = makeGif(2)
   const retimed = retimeGif(gif, 12)
   assert.equal(retimed.subarray(0, 6).toString('latin1'), 'GIF89a')
-  // first GCE starts at 6, so its 16-bit delay sits at 6 + 4
-  assert.equal(retimed.readUInt16LE(10), 8)
-  // second GCE starts at 6 + 8 + 4
-  assert.equal(retimed.readUInt16LE(22), 8)
+  // header 6 + screen 7 + table 6 = 19; GCE delay sits at +4
+  assert.equal(retimed.readUInt16LE(19 + 4), 8)
+  // frame stride: GCE 8 + descriptor 10 + lzw (1 + 1 + 4 + 1) = 25
+  assert.equal(retimed.readUInt16LE(19 + 25 + 4), 8)
   assert.equal(retimeGif(Buffer.from('not a gif'), 12).toString(), 'not a gif')
   assert.equal(retimeGif(gif, 0), gif)
+})
+
+test('gif retiming never touches image data that looks like a GCE', () => {
+  const lzw = [0x21, 0xf9, 0x04, 0x00, 0x14, 0x00, 0x00, 0x00]
+  const gif = makeGif(1, lzw)
+  const retimed = retimeGif(gif, 25)
+  const dataAt = 19 + 8 + 10 + 2
+  assert.deepEqual([...retimed.subarray(dataAt, dataAt + lzw.length)], lzw)
+  assert.equal(retimed.readUInt16LE(19 + 4), 4)
+})
+
+test('gif retiming leaves a truncated or malformed gif alone', () => {
+  const gif = makeGif(1)
+  const broken = Buffer.concat([gif.subarray(0, 30), Buffer.from([0x99])])
+  assert.equal(retimeGif(broken, 12), broken)
 })
 
 test('masks must be RGBA png', () => {

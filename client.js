@@ -27,7 +27,7 @@ window.__ModuleLoader__.load({
       { value: 'auto', label: '默认 (auto)' },
       { value: 'low', label: '宽松 (low)' },
     ]
-    const modelOptions = ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst']
+    const modelOptions = ['gpt-image-2.6-flare', 'gpt-image-2.6-sunburst', 'gpt-image-2.5-flare', 'gpt-image-2.5-sunburst', 'gpt-image-2', 'gpt-image-1.5', 'gpt-image-1-mini', 'chatgpt-image-latest']
     const svgModelOptions = ['gpt-6.1-sol', 'gpt-6-astra']
     const formatOptions = ['png', 'jpeg', 'webp', 'gif', 'svg']
     const assetTypes = ['Decal', 'Image']
@@ -46,7 +46,6 @@ window.__ModuleLoader__.load({
       'svgModel',
       'moderation',
       'outputCompression',
-      'background',
       'outputDir',
       'robloxEnabled',
       'robloxCreatorType',
