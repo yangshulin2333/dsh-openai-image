@@ -31,7 +31,20 @@ export function apply(ctx, rawConfig) {
   registerGenerateTool(ctx, cfg, log)
   registerEditTool(ctx, cfg, log)
   registerUploadTool(ctx, cfg, log)
-  registerSettingsRoutes(ctx, { cfg })
+
+  // The web server may not exist yet while this plugin applies (a headless
+  // profile never has one), so the routes wait for it instead of vanishing.
+  if (typeof ctx.inject === 'function') {
+    ctx.inject(['webServer'], (sctx) => {
+      try {
+        registerSettingsRoutes(sctx, { cfg })
+      } catch (error) {
+        log(`settings routes unavailable: ${error && error.message ? error.message : error}`)
+      }
+    })
+  } else {
+    registerSettingsRoutes(ctx, { cfg })
+  }
 
   log(
     `dsh-openai-image ready: model=${cfg.model} size=${cfg.size} quality=${cfg.quality} ` +

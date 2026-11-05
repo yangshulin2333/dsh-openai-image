@@ -1,6 +1,6 @@
 {
   "name": "@yangshulin2333/dsh-openai-image",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "OpenAI Images 2.6 (gpt-image-2.6 flare/sunburst) tools for DeepSeek Harness, with Roblox Open Cloud asset upload.",
   "type": "module",
   "main": "index.js",
