@@ -135,6 +135,26 @@ window.__ModuleLoader__.load({
       })
     }
 
+    // A one-line verdict rendered directly under the button that produced it, so
+    // the answer never lands somewhere else on the card.
+    function ResultLine(props) {
+      const value = props.value
+      if (!value) return null
+      return h(
+        'span',
+        {
+          style: {
+            ...S.note,
+            display: 'block',
+            width: '100%',
+            wordBreak: 'break-word',
+            color: value.ok ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-state-error-primary)',
+          },
+        },
+        `${value.ok ? '✓' : '✗'} ${value.text}`,
+      )
+    }
+
     function KeyRow(props) {
       const [busy, setBusy] = React.useState(false)
       const [message, setMessage] = React.useState(null)
@@ -219,7 +239,9 @@ window.__ModuleLoader__.load({
       const [draft, setDraft] = React.useState(null)
       const [secrets, setSecrets] = React.useState({ [OPENAI_REF]: '', [ROBLOX_REF]: '' })
       const [busy, setBusy] = React.useState('')
-      const [result, setResult] = React.useState(null)
+      // One result per action, rendered right under the button that produced it.
+      const [results, setResults] = React.useState({ save: null, openai: null, roblox: null })
+      const setResult = (target, value) => setResults((current) => ({ ...current, [target]: value }))
 
       React.useEffect(() => {
         setSnapshot(form.getSnapshot())
@@ -266,7 +288,7 @@ window.__ModuleLoader__.load({
 
       const save = async () => {
         setBusy('save')
-        setResult(null)
+        setResult('save', null)
         try {
           const ops = []
           for (const field of FIELDS) {
@@ -289,9 +311,9 @@ window.__ModuleLoader__.load({
             }
           }
           await readKeys()
-          setResult({ ok: true, text: '已保存，立即生效（不需要重启）。' })
+          setResult('save', { ok: true, text: '已保存，立即生效（不需要重启）。' })
         } catch (error) {
-          setResult({ ok: false, text: error.message })
+          setResult('save', { ok: false, text: error.message })
         } finally {
           setBusy('')
         }
@@ -299,7 +321,7 @@ window.__ModuleLoader__.load({
 
       const test = async (target) => {
         setBusy(target)
-        setResult(null)
+        setResult(target, null)
         try {
           const response = await fetch(`/dsh-openai-image/test`, {
             method: 'POST',
@@ -309,9 +331,9 @@ window.__ModuleLoader__.load({
           })
           const payload = await response.json()
           if (!response.ok || payload.ok === false) throw new Error(payload.error || `HTTP ${response.status}`)
-          setResult({ ok: payload.result.ok, text: payload.result.detail })
+          setResult(target, { ok: payload.result.ok, text: payload.result.detail })
         } catch (error) {
-          setResult({ ok: false, text: error.message })
+          setResult(target, { ok: false, text: error.message })
         } finally {
           setBusy('')
         }
@@ -356,6 +378,7 @@ window.__ModuleLoader__.load({
               { style: { ...S.field, flex: '0 0 auto' } },
               h('span', { style: S.label }, '连通性'),
               h('button', { style: { ...S.button, ...(busy === 'openai' ? S.disabled : {}) }, disabled: busy === 'openai', onClick: () => test('openai') }, busy === 'openai' ? '测试中…' : '测试 OpenAI'),
+              h(ResultLine, { value: results.openai }),
             ),
           ),
         ),
@@ -404,6 +427,7 @@ window.__ModuleLoader__.load({
                     { style: { ...S.field, flex: '0 0 auto' } },
                     h('span', { style: S.label }, '连通性'),
                     h('button', { style: { ...S.button, ...(busy === 'roblox' ? S.disabled : {}) }, disabled: busy === 'roblox', onClick: () => test('roblox') }, busy === 'roblox' ? '测试中…' : '测试 Roblox'),
+                    h(ResultLine, { value: results.roblox }),
                   ),
                 ),
               )
@@ -414,7 +438,7 @@ window.__ModuleLoader__.load({
           'div',
           { style: { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' } },
           h('button', { style: { ...S.primary, ...(busy === 'save' || readonly ? S.disabled : {}) }, disabled: busy === 'save' || readonly, onClick: save }, busy === 'save' ? '保存中…' : '保存配置'),
-          result ? h('span', { style: { ...S.note, color: result.ok ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-state-error-primary)' } }, result.text) : null,
+          h(ResultLine, { value: results.save }),
           readonly ? h('span', { style: S.hint }, '宿主把这份配置标成只读') : null,
         ),
       )
