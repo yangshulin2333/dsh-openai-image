@@ -43,7 +43,20 @@ pnpm add @yangshulin2333/dsh-openai-image
 
 ## 配置
 
-设置 → 插件 → **OpenAI 图像 2.6**：
+> 这是 **host-only 插件**，当前 DSH 版本不会为它渲染设置页面（设置页由插件的 client companion 包提供，本插件没有）。
+> 配置写在 **profile 的 `cordis.patch.yml`** 里：打开 设置 → 右上角「打开配置文件」，在文件末尾追加：
+
+```yaml
+- id: dsh-openai-image
+  name: "@yangshulin2333/dsh-openai-image"
+  config:
+    model: gpt-image-2.6-flare
+    robloxEnabled: true
+    robloxCreatorType: group
+    robloxCreatorId: "123456789"
+```
+
+改完重启一次生效。字段与默认值：
 
 | 字段 | 默认值 | 说明 |
 | --- | --- | --- |

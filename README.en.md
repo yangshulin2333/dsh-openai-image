@@ -35,7 +35,21 @@ Restart DSH afterwards — the bundle patch is loaded at startup.
 
 ## Configure
 
-Settings → Plugins → **OpenAI Images 2.6**:
+> This is a **host-only plugin**: the current DSH release renders no settings page for it
+> (settings pages come from a client companion package, which this plugin does not ship).
+> Configure it in your **profile `cordis.patch.yml`** — open Settings → "Open config file" and append:
+
+```yaml
+- id: dsh-openai-image
+  name: "@yangshulin2333/dsh-openai-image"
+  config:
+    model: gpt-image-2.6-flare
+    robloxEnabled: true
+    robloxCreatorType: group
+    robloxCreatorId: "123456789"
+```
+
+Restart once after editing. Fields and defaults:
 
 | Field | Default | Notes |
 | --- | --- | --- |
