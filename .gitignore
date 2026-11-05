@@ -1,0 +1,6 @@
+node_modules/
+generated-images/
+*.tgz
+*.log
+.DS_Store
+Thumbs.db

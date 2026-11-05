@@ -1,0 +1,18 @@
+# dsh-openai-image bundle layer. Applied automatically when the package is
+# installed as a profile bundle (package.json declares dsh.bundle.patch).
+# Override any field in the profile's own cordis.patch.yml, or in the
+# plugin's settings page in the GUI (which writes the same row back).
+- insert:
+    - id: dsh-openai-image
+      name: '@yangshulin2333/dsh-openai-image'
+      config:
+        apiKeyEnv: OPENAI_API_KEY
+        model: gpt-image-2.6-flare
+        size: 1024x1024
+        quality: auto
+        outputDir: generated-images
+        robloxEnabled: false
+        robloxApiKeyEnv: ROBLOX_API_KEY
+        robloxCreatorType: user
+        robloxCreatorId: ''
+        robloxAssetType: Decal
