@@ -139,6 +139,8 @@ window.__ModuleLoader__.load({
       const [busy, setBusy] = React.useState(false)
       const [message, setMessage] = React.useState(null)
       const trimmed = (props.value || '').trim()
+      const minLength = props.minLength || 20
+      const tooShort = trimmed.length > 0 && trimmed.length < minLength
       const save = async () => {
         setBusy(true)
         setMessage(null)
@@ -176,11 +178,14 @@ window.__ModuleLoader__.load({
           }),
           h(
             'button',
-            { style: { ...S.button, ...(busy || trimmed.length < 20 ? S.disabled : {}) }, disabled: busy || trimmed.length < 20, onClick: save },
+            { style: { ...S.button, ...(busy || trimmed.length < minLength ? S.disabled : {}) }, disabled: busy || trimmed.length < minLength, onClick: save },
             busy ? '保存中…' : '保存',
           ),
         ),
         message ? h('span', { style: { ...S.note, color: message.ok ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-state-error-primary)' } }, message.text) : null,
+        tooShort && props.shortHint
+          ? h('span', { style: { ...S.note, color: 'var(--dsw-alias-state-warn-primary)' } }, props.shortHint)
+          : null,
       )
     }
 
@@ -306,7 +311,7 @@ window.__ModuleLoader__.load({
           if (!response.ok || payload.ok === false) throw new Error(payload.error || `HTTP ${response.status}`)
           setResult({ ok: payload.result.ok, text: payload.result.detail })
         } catch (error) {
-          setResult({ ok: false, text: `${error.message}（连接测试走的是宿主路由；被拦的话回对话里说一声，我直接测）` })
+          setResult({ ok: false, text: error.message })
         } finally {
           setBusy('')
         }
@@ -379,6 +384,8 @@ window.__ModuleLoader__.load({
                   label: 'Roblox Open Cloud 密钥',
                   present: robloxConfigured,
                   value: secrets[ROBLOX_REF],
+                  minLength: 200,
+                  shortHint: '这段太短了，像是 Key ID。要贴的是密钥框里那串 900+ 字符的 Open Cloud 密钥。',
                   onChange: (value) => setSecret(ROBLOX_REF, value),
                   onSave: async (value) => {
                     const written = await ctx.remote.credentials.set(ROBLOX_REF, value)
