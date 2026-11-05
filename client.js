@@ -14,6 +14,9 @@ window.__ModuleLoader__.load({
 
     // Loader entry id of this plugin's Config; the settings namespace the Host serves it under.
     const NAMESPACE = 'dsh-openai-image'
+    // An inserted plugin is keyed by its loader id, which carries the `include:` prefix.
+    const ENTRY_NAMESPACE = 'include:dsh-openai-image'
+    const PACKAGE_NAME = '@yangshulin2333/dsh-openai-image'
     const OPENAI_REF = 'OPENAI_API_KEY'
     const ROBLOX_REF = 'ROBLOX_API_KEY'
 
@@ -222,15 +225,13 @@ window.__ModuleLoader__.load({
 
       if (view === 'summary') return h('span', { style: S.hint }, 'OpenAI Images 2.6 出图 + Roblox 上传设置')
 
-      if (!draft || !snapshot) {
-        return h('div', { style: S.card }, h('span', { style: S.hint }, '正在读取配置…'))
-      }
-      if (snapshot.status !== 'ready') {
+      if (!draft || !snapshot || snapshot.status !== 'ready') {
+        const loading = !snapshot || snapshot.status === 'loading' || snapshot.status === 'idle'
         return h(
           'div',
           { style: S.card },
-          h('span', { style: S.hint }, '宿主没有提供本插件的配置（请确认插件已启用并重启过 DSH）。'),
-          h('span', { style: { ...S.hint, fontFamily: 'ui-monospace, monospace' } }, '诊断：' + (scope.probe ? scope.probe() : 'n/a')),
+          h('span', { style: S.hint }, loading ? '正在读取配置…' : '宿主没有提供本插件的配置（请确认插件已启用并重启过 DSH）。'),
+          h('span', { style: { ...S.hint, fontFamily: 'ui-monospace, monospace', wordBreak: 'break-all' } }, '诊断：' + (scope.probe ? scope.probe() : 'n/a')),
         )
       }
 
@@ -392,10 +393,30 @@ window.__ModuleLoader__.load({
       )
     }
 
-    // First namespace the Host actually serves: the loader entry id, then the
-    // package name, because a bundle's Config can be keyed either way.
+    // A bundle's Config is registered by the Host under its plugin **entry id**
+    // (the loader prefixes an inserted plugin with `include:`), not under the
+    // npm package name — so resolve from the served-namespace directory the
+    // settings mirror publishes, then fall back to the known shapes.
+    function servedNamespaces(configForms) {
+      try {
+        const mirror = configForms.describe()
+        const snapshot = mirror && typeof mirror.getSnapshot === 'function' ? mirror.getSnapshot() : null
+        const view = snapshot && snapshot.view
+        const list = view && Array.isArray(view.namespaces) ? view.namespaces : []
+        return list.map((entry) => entry && entry.ns).filter((ns) => typeof ns === 'string')
+      } catch {
+        return []
+      }
+    }
+
+    function candidateNamespaces(configForms) {
+      const served = servedNamespaces(configForms)
+      const matching = served.filter((ns) => ns === ENTRY_NAMESPACE || ns === NAMESPACE || ns.endsWith('dsh-openai-image'))
+      return [...new Set([...matching, ENTRY_NAMESPACE, NAMESPACE, PACKAGE_NAME])]
+    }
+
     function resolveForm(configForms) {
-      const candidates = [NAMESPACE, '@yangshulin2333/dsh-openai-image']
+      const candidates = candidateNamespaces(configForms)
       let fallback
       for (const namespace of candidates) {
         let form
@@ -418,10 +439,16 @@ window.__ModuleLoader__.load({
       inject: ['slots', 'remote', 'remote.credentials', 'configForms'],
       apply(ctx) {
         scope.ctx = ctx
+        scope.entryNamespace = () => {
+          const served = servedNamespaces(ctx.configForms)
+          const match = served.find((ns) => ns === ENTRY_NAMESPACE || ns.endsWith('dsh-openai-image'))
+          return match || ENTRY_NAMESPACE
+        }
         scope.form = resolveForm(ctx.configForms)
         scope.probe = () => {
-          const rows = []
-          for (const namespace of [NAMESPACE, '@yangshulin2333/dsh-openai-image']) {
+          const served = servedNamespaces(ctx.configForms)
+          const rows = [`served=[${served.join(', ') || 'empty'}]`]
+          for (const namespace of candidateNamespaces(ctx.configForms).slice(0, 3)) {
             try {
               const form = ctx.configForms.get(namespace)
               const snapshot = form && typeof form.getSnapshot === 'function' ? form.getSnapshot() : null
