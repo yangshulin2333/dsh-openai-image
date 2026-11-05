@@ -241,6 +241,9 @@ window.__ModuleLoader__.load({
       const [snapshot, setSnapshot] = React.useState(() => form.getSnapshot())
       const [keys, setKeys] = React.useState({})
       const [draft, setDraft] = React.useState(null)
+      const savingRef = React.useRef(false)
+      // Field values the user just saved; kept visible until the host echoes them.
+      const expectedRef = React.useRef({})
       const [secrets, setSecrets] = React.useState({ [OPENAI_REF]: '', [ROBLOX_REF]: '' })
       const [busy, setBusy] = React.useState('')
       // One result per action, rendered right under the button that produced it.
@@ -271,7 +274,21 @@ window.__ModuleLoader__.load({
       }, [view, readKeys, ctx])
 
       React.useEffect(() => {
-        setDraft(snapshot && snapshot.value ? { ...snapshot.value } : null)
+        if (!snapshot || !snapshot.value) {
+          if (!savingRef.current) setDraft(null)
+          return
+        }
+        const confirmed = Object.entries(expectedRef.current).filter(([key, wanted]) => Object.is(snapshot.value[key], wanted))
+        for (const [key] of confirmed) delete expectedRef.current[key]
+        setDraft((current) => {
+          const merged = { ...snapshot.value }
+          if (current) {
+            for (const key of Object.keys(expectedRef.current)) {
+              if (key in current) merged[key] = current[key]
+            }
+          }
+          return merged
+        })
       }, [snapshot])
 
       if (view === 'summary') return h('span', { style: S.hint }, 'OpenAI Images 2.6 出图 + Roblox 上传设置')
@@ -293,6 +310,7 @@ window.__ModuleLoader__.load({
       const save = async () => {
         setBusy('save')
         setResult('save', null)
+        savingRef.current = true
         try {
           const ops = []
           for (const field of FIELDS) {
@@ -303,6 +321,10 @@ window.__ModuleLoader__.load({
             else ops.push({ op: 'set', path: [field], value: next })
           }
           if (ops.length > 0) {
+            for (const op of ops) {
+              if (op.op === 'set') expectedRef.current[op.path[0]] = op.value
+              else delete expectedRef.current[op.path[0]]
+            }
             const landed = await form.mutate(ops, snapshot.revision)
             if (!landed) throw new Error('宿主拒绝了这次配置写入（可能被校验拦下）')
           }
@@ -315,10 +337,38 @@ window.__ModuleLoader__.load({
             }
           }
           await readKeys()
-          setResult('save', { ok: true, text: '已保存，立即生效（不需要重启）。' })
+          // The host echoes the persisted config; if a field did not come back
+          // with the value we wrote, say so instead of pretending it is live.
+          let lagged = false
+          try {
+            const echoed = form.getSnapshot()
+            if (echoed && echoed.value) {
+              for (const op of ops) {
+                if (op.op !== 'set') continue
+                const key = op.path[0]
+                if (echoed.value[key] !== op.value) lagged = true
+              }
+            }
+          } catch {
+            /* no echo to compare against */
+          }
+          setResult('save', {
+            ok: true,
+            text: lagged
+              ? '已写入配置文件，但运行中的配置没有即时刷新：重启 DSH 后生效。'
+              : '已保存，立即生效（不需要重启）。',
+          })
         } catch (error) {
           setResult('save', { ok: false, text: error.message })
+          try {
+            const latest = form.getSnapshot()
+            setSnapshot(latest)
+            if (latest && latest.value) setDraft({ ...latest.value })
+          } catch {
+            /* keep the local draft */
+          }
         } finally {
+          savingRef.current = false
           setBusy('')
         }
       }

@@ -28,6 +28,21 @@ export function apply(ctx, rawConfig) {
     }
   }
 
+  // Settings edits must reach the running tools without a restart. The config
+  // editor runs this waterfall with the next raw config before reconciling, so
+  // fold it into the very object every tool closure already reads.
+  if (typeof ctx.on === 'function') {
+    ctx.on('internal/config', (next) => {
+      try {
+        Object.assign(cfg, normalizeConfig(next))
+        log(`dsh-openai-image config updated: roblox=${cfg.robloxEnabled ? 'on' : 'off'} model=${cfg.model}`)
+      } catch (error) {
+        log(`dsh-openai-image config update ignored: ${error && error.message ? error.message : error}`)
+      }
+      return next
+    })
+  }
+
   registerGenerateTool(ctx, cfg, log)
   registerEditTool(ctx, cfg, log)
   registerUploadTool(ctx, cfg, log)
