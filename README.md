@@ -1,126 +1,169 @@
 # dsh-openai-image
 
-English · [中文](./README.zh.md)
+中文 · [English](./README.en.md)
 
-OpenAI **Images 2.6** tools for **DeepSeek Harness (DSH)**: talks to the official `/v1/images/generations` and `/v1/images/edits` endpoints, ships **Roblox asset presets**, and can publish the result to **Roblox Open Cloud** to get an `rbxassetid://`.
+给 **DeepSeek Harness（DSH）** 用的 OpenAI Images 2.6 工具集：直接打官方 `/v1/images/generations` 和 `/v1/images/edits`，内置 **Roblox 资源预设**，并且能把成品一键传到 Roblox Open Cloud 拿到 `rbxassetid://`。
 
-One job, done precisely: be the **first-class citizen for GPT-Image-2.6**.
+只做一件事，并且把它做准：**GPT-Image-2.6 的一等公民**。
 
 ```
-image_generate  →  create images (flare / sunburst, Roblox presets)
-image_edit      →  edit images (multi-image input, optional mask)
-roblox_upload   →  publish to Roblox, return rbxassetid:// (off by default, confirm-gated)
+image_generate  →  出图（flare / sunburst，Roblox 预设）
+image_edit      →  改图（多图输入 + 可选 mask）
+roblox_upload   →  传到 Roblox，拿 rbxassetid://（默认关闭，需用户确认）
 ```
 
-## Why not the existing image plugins
+## 为什么不用现成的图片插件
 
-Most DSH image plugins speak "OpenAI-compatible" but still send diffusion parameters — `seed`, `steps`, `negative_prompt`, `guidance_scale`. The official Images API rejects them, so the very first call fails with:
+市面上几个 DSH 出图插件都走「OpenAI 兼容」这条路，它们会把 `seed`、`steps`、`negative_prompt`、`guidance_scale` 一起发给服务端——这些是扩散模型参数，OpenAI 官方 Images API 不认，于是第一张图就会得到：
 
 ```
 HTTP 400: Unknown parameter: 'seed'.
 ```
 
-This plugin sends only documented fields (`model` / `prompt` / `n` / `size` / `quality` / `output_format` / `background`), and its output schema never contains a `null` object field (the other classic failure: the PNG is already on disk while the tool reports `"value.router" must be an object`).
+本插件只发官方文档里存在的字段（`model` / `prompt` / `n` / `size` / `quality` / `output_format` / `background`），并且保证输出 schema 里没有 `null` 对象字段（另一种常见故障：图已经存好了，工具却报 `"value.router" must be an object`）。
 
-## Install
+## 安装
 
 ```bash
+# 从 GitHub（推荐）
 dsh plugin add github:yangshulin2333/dsh-openai-image
 
-# or into a specific profile
+# 或者装到某个 profile
 dsh plugin --profile web add github:yangshulin2333/dsh-openai-image
 ```
 
-Restart DSH afterwards — the bundle patch is loaded at startup.
+装完重启 DSH（补丁层在启动时加载）。
 
-## Configure
+也可以手动放进 profile 的依赖：
 
-Settings → Plugins → **OpenAI Images 2.6**:
+```bash
+cd ~/.dsh/profiles/desktop
+pnpm add @yangshulin2333/dsh-openai-image
+```
 
-| Field | Default | Notes |
+## 配置
+
+设置 → 插件 → **OpenAI 图像 2.6**：
+
+| 字段 | 默认值 | 说明 |
 | --- | --- | --- |
-| enabled | `true` | master switch |
-| apiKeyEnv | `OPENAI_API_KEY` | DSH credential or environment variable name |
-| baseURL | `https://api.openai.com/v1` | point at a proxy if you use one |
-| model | `gpt-image-2.6-flare` | fast; `gpt-image-2.6-sunburst` for detail |
-| size | `1024x1024` | also `1536x1024`, `1024x1536` |
-| quality | `auto` | `low` / `medium` / `high` |
-| outputDir | `generated-images` | relative to the session working directory |
-| promptSuffix | empty | appended to every prompt |
-| defaultPreset | empty | see the preset table |
-| robloxEnabled | `false` | turns `roblox_upload` on |
-| robloxApiKeyEnv | `ROBLOX_API_KEY` | Open Cloud key with the `assets` scope |
-| robloxCreatorType / Id | `user` / empty | userId for personal assets, groupId for groups |
-| robloxAssetType | `Decal` | or `Image` |
+| 启用 | `true` | 总开关 |
+| 凭证名称 | `OPENAI_API_KEY` | DSH 凭据库或环境变量里的名字 |
+| API 地址 | `https://api.openai.com/v1` | 走代理时改这里 |
+| 默认模型 | `gpt-image-2.6-flare` | 快；`gpt-image-2.6-sunburst` 画质更好 |
+| 默认尺寸 | `1024x1024` | 另支持 `1536x1024`、`1024x1536` |
+| 默认画质 | `auto` | `low` / `medium` / `high` |
+| 输出目录 | `generated-images` | 相对当前会话工作目录 |
+| 提示词后缀 | 空 | 追加到每个 prompt 末尾，适合项目统一风格 |
+| 默认预设 | 空 | 见下方预设表 |
+| 启用 Roblox 上传 | `false` | 打开后 `roblox_upload` 才可用 |
+| Roblox 凭证名称 | `ROBLOX_API_KEY` | 带 `assets` 权限的 Open Cloud API key |
+| Roblox creator 类型 / id | `user` / 空 | 个人资产填 userId，组资产填 groupId |
+| Roblox 资产类型 | `Decal` | 或 `Image` |
 
-## Tools
+API key 放在 DSH 凭据库里最省事（设置 → 账号与余额 → 凭据），也可以用环境变量。
 
-**`image_generate`** — `prompt` (required), `preset`, `model`, `size`, `aspect_ratio`, `quality`, `count` (1–4), `output_format`, `background`, `output_name`, `output_dir`.
+## 工具
 
-**`image_edit`** — `prompt` (required), `image` (required, comma-separated paths, up to 8), `mask` (optional PNG; transparent pixels get repainted), plus the same generation options.
+### image_generate
 
-**`roblox_upload`** — `image` (required), `confirm` (optional; omit it to get a `confirm_required` summary of the planned upload, pass `true` only after the user agreed), `display_name`, `description`, `asset_type`, `creator_type`, `creator_id`.
+| 参数 | 说明 |
+| --- | --- |
+| `prompt`（必填） | 画面描述 |
+| `preset` | Roblox 预设名，自动补尺寸/格式/约束 |
+| `model` / `size` / `aspect_ratio` / `quality` / `count` / `output_format` / `background` | 与官方 API 一致 |
+| `output_name` / `output_dir` | 落盘位置 |
 
-## Roblox presets
+### image_edit
 
-| Preset | Size | Use |
+| 参数 | 说明 |
+| --- | --- |
+| `prompt`（必填） | 要改什么 |
+| `image`（必填） | 源图路径，多张用逗号分隔（最多 8 张） |
+| `mask` | 可选 PNG 蒙版，透明区域即重绘区域 |
+| 其余 | 同 `image_generate`（`preset` 也可用） |
+
+### roblox_upload
+
+| 参数 | 说明 |
+| --- | --- |
+| `image`（必填） | 本地 png/jpg/bmp/tga |
+| `confirm`（可选） | 不传时只返回计划摘要（`confirm_required`）；用户明确同意后再传 `true` |
+| `display_name` / `description` | 资产名（≤50 字）/ 描述 |
+| `asset_type` / `creator_type` / `creator_id` | 覆盖设置里的默认值 |
+
+## Roblox 预设
+
+| 预设 | 尺寸 | 用途 |
 | --- | --- | --- |
-| `game_icon` | 1024×1024 | store icon, readable at 150 px |
-| `thumbnail` | 1536×1024 | key art, subject on the right third |
-| `gamepass` | 1024×1024 | game pass / product icon |
-| `badge` | 1024×1024 | achievement badge |
-| `decal` | 1024×1024 (transparent) | generic decal |
-| `ui_9slice` | 1024×1024 | 9-slice panel, ships a `sliceHint` |
-| `seamless_texture` | 1024×1024 | tileable material texture |
+| `game_icon` | 1024×1024 | 游戏图标，150px 下仍可辨认 |
+| `thumbnail` | 1536×1024 | 缩略图 / 宣传图，主体靠右留标题位 |
+| `gamepass` | 1024×1024 | 通行证 / 商品图标 |
+| `badge` | 1024×1024 | 成就徽章 |
+| `decal` | 1024×1024（透明） | 通用贴花 |
+| `ui_9slice` | 1024×1024 | 九宫格面板，附 `sliceHint` |
+| `seamless_texture` | 1024×1024 | 无缝平铺材质 |
 
-Presets only add prompt constraints, size and format — no hidden post-processing. The full prompt is returned so you can reproduce any image by hand.
+预设只加**提示词约束 + 尺寸 + 格式**，不加任何后处理；结果里会返回完整 prompt，方便你复制出来手工复现。
 
-## Roblox upload
+## Roblox 上传
 
-1. Create an API key at [Creator Dashboard → Open Cloud](https://create.roblox.com/dashboard/credentials) with the **assets** scope (read + write) and your IP allowed.
-2. Store it as the DSH credential `ROBLOX_API_KEY`.
-3. Enable Roblox upload in the plugin settings and fill `robloxCreatorId`.
-4. Generate an image, call `roblox_upload({ image })` to preview the planned upload, then — after the user explicitly agrees — call it again with `confirm: true`.
+1. 在 [Creator Dashboard → Open Cloud → API Keys](https://create.roblox.com/dashboard/credentials) 建 key，权限勾 **assets**（读 + 写），并允许你的 IP。
+2. 把 key 存成 DSH 凭据 `ROBLOX_API_KEY`。
+3. 插件设置里打开「启用 Roblox 上传」，填 `robloxCreatorId`（个人：[users/<id>/profile](https://www.roblox.com/users/1/profile) 里的数字）。
+4. 让 agent 先出图，先调 `roblox_upload({ image })` 预览计划上传，用户**明确同意**后再传 `confirm: true`。
 
-Limits from the official Assets API: png/jpeg/bmp/tga, **< 8000×8000 px**, **≤ 20 MB**, and **assets cannot be updated** (a new revision is a new asset, hence the timestamp in file names). Uploads are asynchronous: the plugin polls the operation until `done`, then returns `assetId`, `rbxassetid://` and `moderationState`, and records the result in the `.json` sidecar next to the image.
+限制（来自官方 Assets API）：png/jpeg/bmp/tga、**< 8000×8000 px**、**≤ 20 MB**、**资产不可更新**（改图 = 新资产，所以文件名带时间戳）。上传是异步的，插件会轮询 operation 直到 `done`，返回 `assetId`、`rbxassetid://`、`moderationState`，并把结果写进图片旁边的 `.json` sidecar。
 
-### Step 3: put the asset into a place
+### 第 3 跳：把资产放进 place
 
-The plugin deliberately stops at the asset id. Use **Roblox Studio MCP**:
+插件不碰 Studio，交给 **Roblox Studio MCP**：
 
-1. Studio → Assistant → `⋯` → **Manage MCP Servers** → enable **Studio as MCP server**.
-2. Register a stdio MCP server in DSH with `cmd.exe /c %LOCALAPPDATA%\Roblox\mcp.bat` (Windows).
-3. Ask the agent to create an `ImageLabel` / `Decal` with `rbxassetid://<id>`, or use `Datatype.Content.fromAssetId(id)` from Luau.
+1. Studio → Assistant → `⋯` → **Manage MCP Servers** → 勾选 **Enable Studio as MCP server**。
+2. 在 DSH 里挂一个 stdio MCP server，命令：`cmd.exe /c %LOCALAPPDATA%\Roblox\mcp.bat`（Windows）。
+3. 然后在 Studio 里让 agent 用 `rbxassetid://<id>` 建 `ImageLabel` / `Decal`，或用 Luau `Datatype.Content.fromAssetId(id)`。
 
-## Speed and cost
+## 速度与成本
 
-Measured (1024×1024, one image, including download; api.openai.com, Nov 2026):
+实测（1024×1024，单张，含下载；2026-11，api.openai.com）：
 
-| Model / quality | Time |
+| 模型 / 画质 | 耗时 |
 | --- | --- |
 | `gpt-image-2.6-flare` / `low` | ≈ 6.1 s |
 | `gpt-image-2.6-flare` / `medium` | ≈ 7.4 s |
 | `gpt-image-2.6-sunburst` / `low` | ≈ 16.7 s |
 
-Pricing (unchanged from Images 2.5): $30 per 1M image tokens, $8 per 1M input image tokens, $5 per 1M input text tokens.
+计价（与 Images 2.5 持平）：出图 $30 / 1M image token，参考图输入 $8 / 1M，文本输入 $5 / 1M。日常做图标/贴花用 flare + low 就够，需要细节时再上 sunburst。
 
-## Troubleshooting
+## 排错
 
-| Symptom | Fix |
+| 现象 | 原因 / 处理 |
 | --- | --- |
-| `HTTP 401: Missing bearer or basic authentication` | the credential name in the settings does not exist in the DSH credential store |
-| `HTTP 400: Unknown parameter: 'seed'` | you are on an "OpenAI-compatible" plugin that forwards diffusion parameters; this one never does |
-| `HTTP 403` / `Invalid scope` | the Roblox key lacks the assets scope, or your IP is not allow-listed |
-| `robloxCreatorId is empty` | fill the userId / groupId |
-| `must be an object` although the image exists | a `null` object field slipped into the output schema — please open an issue |
+| `HTTP 401: Missing bearer or basic authentication` | 凭证名对不上：确认设置里的凭证名称就是凭据库里的名字 |
+| `HTTP 400: Unknown parameter: 'seed'` | 你装的是走 custom provider 的旧插件；本插件不会发这些字段 |
+| `HTTP 403` / `Invalid scope` | Roblox key 没有 assets 读+写权限，或 IP 白名单没放行 |
+| `robloxCreatorId is empty` | 设置里填 userId / groupId |
+| 工具报 `must be an object` 但图已生成 | 输出 schema 里出现了 `null` 对象字段，属于 bug，请开 issue |
+| 传了图但游戏里不显示 | 审核还没过（看 `moderationState`），或者资产是不可更新的旧 version |
 
-## Development
+## 开发
 
 ```bash
-npm test        # 31 pure unit tests, no network
+npm test        # 31 个纯函数单元测试，不联网
 npm run pack:dry
 ```
 
-Layout: `index.js` (registers the three tools), `cordis.patch.yml` (defaults), `lib/config.js`, `lib/presets.js`, `lib/openai.js`, `lib/roblox.js`, `lib/tools/*.js`, `test/*.test.js`.
+结构：
+
+```
+index.js              # apply(ctx, config)：注册三个工具
+cordis.patch.yml      # bundle 补丁（默认配置）
+lib/config.js         # 配置 schema + 归一化
+lib/presets.js        # Roblox 预设
+lib/openai.js         # Images API 客户端 + 落盘
+lib/roblox.js         # Open Cloud 上传 + 校验
+lib/tools/*.js        # 三个工具
+test/*.test.js        # node:test 单元测试
+```
 
 MIT License.
