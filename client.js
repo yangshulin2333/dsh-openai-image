@@ -412,7 +412,9 @@ window.__ModuleLoader__.load({
     function candidateNamespaces(configForms) {
       const served = servedNamespaces(configForms)
       const matching = served.filter((ns) => ns === ENTRY_NAMESPACE || ns === NAMESPACE || ns.endsWith('dsh-openai-image'))
-      return [...new Set([...matching, ENTRY_NAMESPACE, NAMESPACE, PACKAGE_NAME])]
+      // The entry id is the namespace the Host documents for `settings.describe`
+      // ("forms keyed by unique profile entry ids"), so it goes first.
+      return [...new Set([ENTRY_NAMESPACE, ...matching, NAMESPACE, PACKAGE_NAME])]
     }
 
     function resolveForm(configForms) {
