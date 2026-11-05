@@ -33,39 +33,21 @@ dsh plugin --profile web add github:yangshulin2333/dsh-openai-image
 
 Restart DSH afterwards — the bundle patch is loaded at startup.
 
-## Configure
+## Configuration (visual)
 
-> This is a **host-only plugin**: the current DSH release renders no settings page for it
-> (settings pages come from a client companion package, which this plugin does not ship).
-> Configure it in your **profile `cordis.patch.yml`** — open Settings → "Open config file" and append:
+After installing, open `@yangshulin2333/dsh-openai-image` in the **Plugins** panel. The
+bundle page renders the configuration card:
 
-```yaml
-- id: dsh-openai-image
-  name: "@yangshulin2333/dsh-openai-image"
-  config:
-    model: gpt-image-2.6-flare
-    robloxEnabled: true
-    robloxCreatorType: group
-    robloxCreatorId: "123456789"
-```
+1. **OpenAI API key** — paste `sk-...`; it goes to DSH credentials, never to the config file.
+2. **Roblox Open Cloud key** — create one in the Creator Dashboard with `assets` Read + Write
+   (group keys require you to own the group).
+3. **Creator type / id** — a user id for your own assets, a group id for group assets (digits only).
+4. **Enable Roblox upload** — off by default; every upload still asks you to confirm in chat.
+5. **Save configuration** applies immediately, no restart; the two "test connection" buttons
+   verify the keys against the live APIs.
 
-Restart once after editing. Fields and defaults:
-
-| Field | Default | Notes |
-| --- | --- | --- |
-| enabled | `true` | master switch |
-| apiKeyEnv | `OPENAI_API_KEY` | DSH credential or environment variable name |
-| baseURL | `https://api.openai.com/v1` | point at a proxy if you use one |
-| model | `gpt-image-2.6-flare` | fast; `gpt-image-2.6-sunburst` for detail |
-| size | `1024x1024` | also `1536x1024`, `1024x1536` |
-| quality | `auto` | `low` / `medium` / `high` |
-| outputDir | `generated-images` | relative to the session working directory |
-| promptSuffix | empty | appended to every prompt |
-| defaultPreset | empty | see the preset table |
-| robloxEnabled | `false` | turns `roblox_upload` on |
-| robloxApiKeyEnv | `ROBLOX_API_KEY` | Open Cloud key with the `assets` scope |
-| robloxCreatorType / Id | `user` / empty | userId for personal assets, groupId for groups |
-| robloxAssetType | `Decal` | or `Image` |
+You can still configure it from the profile's `cordis.patch.yml` (see the Chinese README for the
+field table); both paths write the same values.
 
 ## Tools
 
