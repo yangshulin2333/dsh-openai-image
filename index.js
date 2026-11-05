@@ -8,6 +8,7 @@
 //   roblox_upload  — POST apis.roblox.com/assets/v1/assets (opt-in, confirm-gated)
 
 import { Config, normalizeConfig } from './lib/config.js'
+import { registerSettingsRoutes } from './lib/routes.js'
 import { registerGenerateTool } from './lib/tools/generate.js'
 import { registerEditTool } from './lib/tools/edit.js'
 import { registerUploadTool } from './lib/tools/upload.js'
@@ -30,6 +31,7 @@ export function apply(ctx, rawConfig) {
   registerGenerateTool(ctx, cfg, log)
   registerEditTool(ctx, cfg, log)
   registerUploadTool(ctx, cfg, log)
+  registerSettingsRoutes(ctx, { cfg })
 
   log(
     `dsh-openai-image ready: model=${cfg.model} size=${cfg.size} quality=${cfg.quality} ` +

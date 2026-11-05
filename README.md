@@ -41,10 +41,17 @@ cd ~/.dsh/profiles/desktop
 pnpm add @yangshulin2333/dsh-openai-image
 ```
 
-## 配置
+## 配置（图形界面）
 
-> 这是 **host-only 插件**，当前 DSH 版本不会为它渲染设置页面（设置页由插件的 client companion 包提供，本插件没有）。
-> 配置写在 **profile 的 `cordis.patch.yml`** 里：打开 设置 → 右上角「打开配置文件」，在文件末尾追加：
+装好之后在左侧栏 **插件** 面板里点开 `@yangshulin2333/dsh-openai-image`，页面正文就是配置卡片：
+
+1. **OpenAI API 密钥** —— 粘贴 `sk-...` 点「保存」，只写进 DSH 凭据库，不进配置文件。
+2. **Roblox Open Cloud 密钥** —— 在 Roblox Creator Dashboard 建一个 key，勾 `assets` 的 Read + Write；群组密钥要求你是该群组拥有者。
+3. **创作者类型 / 创作者 ID** —— 发到个人账号填 user id，发到群组填 group id（纯数字，例如 `726492544`）。
+4. **启用 Roblox 上传** —— 默认关闭；打开后工具才可用，而且每次上传仍会在对话里向你确认。
+5. 点「保存配置」**即时生效，不需要重启**；「测试 OpenAI 连接」「测试 Roblox 连接」会直接验证 key 是否被接受。
+
+也可以跳过界面，直接把配置写进 profile 的 `cordis.patch.yml`（适合团队预置）：
 
 ```yaml
 - id: dsh-openai-image
@@ -56,7 +63,7 @@ pnpm add @yangshulin2333/dsh-openai-image
     robloxCreatorId: "123456789"
 ```
 
-改完重启一次生效。字段与默认值：
+字段与默认值：
 
 | 字段 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -73,8 +80,6 @@ pnpm add @yangshulin2333/dsh-openai-image
 | Roblox 凭证名称 | `ROBLOX_API_KEY` | 带 `assets` 权限的 Open Cloud API key |
 | Roblox creator 类型 / id | `user` / 空 | 个人资产填 userId，组资产填 groupId |
 | Roblox 资产类型 | `Decal` | 或 `Image` |
-
-API key 放在 DSH 凭据库里最省事（设置 → 账号与余额 → 凭据），也可以用环境变量。
 
 ## 工具
 
